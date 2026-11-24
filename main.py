@@ -21,20 +21,42 @@ SENTENCE = (
     "candle burns down."
 )
 
+TERMINATORS = ".!?"
 
-def main() -> None:
-    text = SENTENCE.strip()
+
+def validate_entry(text: str) -> str:
+    """Check the entry is exactly one sentence of 1-200 characters.
+
+    Returns the stripped text, or fails loudly so a bad entry never
+    reaches the judge silently.
+    """
+    text = text.strip()
     if not text:
         raise SystemExit("entry is empty")
-    if len(text) > 200:
-        raise SystemExit(f"entry is {len(text)} characters, over the 200 limit")
-    if text.count(".") != 1 or not text.endswith("."):
-        raise SystemExit("entry must be exactly one sentence")
+    if len(text) < 1 or len(text) > 200:
+        raise SystemExit(
+            f"entry is {len(text)} characters, outside the 1-200 limit"
+        )
+    if any(ch in TERMINATORS for ch in text[:-1]):
+        raise SystemExit("entry must be exactly one sentence, no extra terminator")
+    if text[-1] not in TERMINATORS:
+        raise SystemExit("entry must end with a sentence terminator")
+    if any(ch in text for ch in "\n\r\t"):
+        raise SystemExit("entry must be a single line of text")
+    return text
+
+
+def main() -> None:
+    text = validate_entry(SENTENCE)
     out_dir = os.environ.get("OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.txt")
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
+    with open(path, encoding="utf-8") as f:
+        written = f.read()
+    if validate_entry(written) != text:
+        raise SystemExit("written entry failed re-validation")
     print(f"wrote {len(text)} characters to {path}")
 
 
